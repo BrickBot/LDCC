@@ -1,0 +1,137 @@
+/******************************************************************************
+   Author : Mark Riley
+     File : ldccdemo.nqc
+  Created : 6/29/2003
+  Purpose : Demonstration of NQC to LDCC comms using standard RCX packets
+******************************************************************************/
+
+#define LDCC_CMD_SPEED 1
+#define LDCC_CMD_FN_OFF 2
+#define LDCC_CMD_FN_ON 3
+#define LDCC_CMD_STOP_ALL 4
+#define LDCC_CMD_POWER_OFF 5
+#define LDCC_CMD_POWER_ON 6
+#define LDCC_CMD_SWITCH_CLOSED 7
+#define LDCC_CMD_SWITCH_THROWN 8
+
+#define LDCC_REPEAT 3
+
+void ldcc_power(int state)
+  {
+  SetSerialData(2, state ? LDCC_CMD_POWER_ON : LDCC_CMD_POWER_OFF);
+  SendSerial(0, 3);
+  }
+
+void ldcc_stop_all()
+  {
+  SetSerialData(2, LDCC_CMD_STOP_ALL);
+  SendSerial(0, 3);
+  }
+
+void ldcc_speed(int loco, int speed)
+  {
+  SetSerialData(2, LDCC_CMD_SPEED);
+  SetSerialData(3, loco);
+  SetSerialData(4, speed >> 8);
+  SetSerialData(5, speed & 0xFF);
+  SendSerial(0, 6);
+  }
+
+void ldcc_function(int loco, int fn, int state)
+  {
+  SetSerialData(2, state ? LDCC_CMD_FN_ON : LDCC_CMD_FN_OFF);
+  SetSerialData(3, loco);
+  SetSerialData(4, fn);
+  SendSerial(0, 5);
+  }
+
+#define MAX_ANGLE 48
+#define LOCO 3
+
+task main()
+  {
+  int angle = 0;
+  int last_angle = -1;
+  int state = 0;
+  int headlight = 0;
+  int headlight_repeat = LDCC_REPEAT;
+  int speed_repeat = LDCC_REPEAT;
+  int time;
+
+  SetSensor(SENSOR_3, SENSOR_ROTATION);
+  ClearSensor(SENSOR_3);
+
+  SetSerialComm(SERIAL_COMM_DEFAULT);
+  SetSerialPacket(SERIAL_PACKET_RCX);
+  SetSerialData(0, 0xF5);
+  SetSerialData(1, 0x01);
+
+  while (1)
+    {
+    switch (state)
+      {
+      case 1:
+        if (SensorValueRaw(SENSOR_3) >= 256)
+          {  // button released, toggle headlight;
+          headlight = !headlight;
+          headlight_repeat = LDCC_REPEAT;
+          state = 0;
+          }
+        else
+          {  // button still held down
+          if (FastTimer(0) >= 25)
+            {  // 1/4 second elapsed, stop loco
+            ClearSensor(SENSOR_3);
+            angle = 0;
+            speed_repeat = LDCC_REPEAT;
+            state = 2;
+            }
+          }
+        break;
+
+      case 2:
+        if (SensorValueRaw(SENSOR_3) >= 256)
+          // button released, resume
+          state = 0;
+        break;
+
+      default:
+        if (SensorValueRaw(SENSOR_3) >= 256)
+          {  // no button pressed, normal throttle operation
+          angle = SENSOR_3;
+
+          if (angle < -MAX_ANGLE)
+            angle = -MAX_ANGLE;
+          else if (angle > MAX_ANGLE)
+            angle = MAX_ANGLE;
+
+          if (angle != last_angle)
+            {
+            last_angle = angle;
+            speed_repeat = LDCC_REPEAT;
+            }
+          }
+        else
+          {  // button pressed
+          ClearTimer(0);
+          state = 1;
+          }
+        break;
+      }
+
+    if (speed_repeat)
+      {
+      speed_repeat--;
+      ldcc_speed(LOCO, angle * (16384 / MAX_ANGLE));
+      }
+
+    if (headlight_repeat)
+      {
+      headlight_repeat--;
+      ldcc_function(LOCO, 0, headlight);
+      }
+    }
+  }
+
+// eof //
+
