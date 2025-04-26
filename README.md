@@ -11,7 +11,7 @@ Project Links
 -------------
 * [Mark Riley’s DCC for the RCX](https://web.archive.org/web/20151002092624/http://home.surewest.net/markril/lego/dcc/)
   + [Beta Zone: DCC for the RCX](https://web.archive.org/web/20120717071055/http://home.surewest.net/markril/lego/dcc/beta.html): LDCC, LACC, throttle control, and more
-* [Alternate version by Seibz, based on Mark Riley’s version](https://web.archive.org/web/20240909221332/https://seibz.seibeltechnology.com/LegoProjects/LDCC/)
+* [Alternate version by Seibz, based on Mark Riley’s version](https://seibz.seibeltechnology.com/LegoProjects/LDCC_DCC)
 * [Dr. Vegetable’s Full Throttle App](http://www.drvegetable.com/download_throttle.html)
 
 Information and Resources
